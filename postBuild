@@ -4,10 +4,17 @@
 # if the FMU already ships a linux64 binary.
 set -e
 
-if [ -f "Standalone_House.fmu" ]; then
-    echo "postBuild: compiling FMU platform binary..."
-    python -m fmpy compile Standalone_House.fmu
-    echo "postBuild: done."
-else
-    echo "postBuild: no FMU found, skipping."
-fi
+python - <<'PY'
+import os
+fmu = "Standalone_House.fmu"
+if not os.path.exists(fmu):
+    print("postBuild: no FMU found, skipping pre-compile.")
+else:
+    try:
+        from fmpy.util import compile_platform_binary
+        compile_platform_binary(fmu)
+        print("postBuild: pre-compiled FMU platform binary.")
+    except Exception as e:
+        print(f"postBuild: could not pre-compile ({e}); "
+              f"FMPy will compile on first run instead.")
+PY
