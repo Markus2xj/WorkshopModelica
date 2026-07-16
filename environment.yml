@@ -3,7 +3,6 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - fmpy>=0.3.20
   - matplotlib
   - numpy
   - lxml
@@ -12,3 +11,6 @@ dependencies:
   - c-compiler
   - cmake
   - make
+  - pip
+  - pip:
+    - fmpy>=0.3.20
