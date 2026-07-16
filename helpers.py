@@ -10,6 +10,7 @@ import zipfile
 
 def _ensure_binary(filepath):
     """Compile FMU C sources for the current platform if no binary is present."""
+    import subprocess, sys
     sys_map = {"Linux": "linux64", "Windows": "win64", "Darwin": "darwin64"}
     plat = sys_map.get(platform.system())
     if plat is None:
@@ -18,8 +19,7 @@ def _ensure_binary(filepath):
         if any(n.startswith(f"binaries/{plat}/") for n in z.namelist()):
             return
     print(f"No {plat} binary found in FMU — compiling from source (one-time, ~30 s)...")
-    from fmpy.util import compile_platform_binary
-    compile_platform_binary(filepath)
+    subprocess.check_call([sys.executable, "-m", "fmpy", "compile", filepath])
     print("Compilation done.")
 
 def build_variable_maps(model_description):
