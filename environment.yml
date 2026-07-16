@@ -1,0 +1,14 @@
+name: modelica-workshop
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - fmpy>=0.3.20
+  - matplotlib
+  - numpy
+  - lxml
+  # Toolchain so FMPy can compile a source-code FMU on Binder's Linux.
+  # (Required if you export the FMU with C source instead of a linux64 binary.)
+  - c-compiler
+  - cmake
+  - make

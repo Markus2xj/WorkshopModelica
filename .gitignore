@@ -1,0 +1,6 @@
+.claude
+.venv/
+__pycache__/
+.idea/
+cosim_results.csv
+cosim_congestion.png
