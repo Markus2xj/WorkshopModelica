@@ -23,21 +23,38 @@ jobs:
           sudo apt-get install -y cmake build-essential
           pip install fmpy
 
-      - name: Patch missing ModelicaExternalC headers into FMU
+      - name: Patch FMU
         run: |
+          # Fetch ModelicaExternalC headers and implementations
           BASE="https://raw.githubusercontent.com/modelica/ModelicaExternalC/master/C-Sources"
-          for hdr in ModelicaStrings.h ModelicaUtilities.h ModelicaError.h ModelicaFormatMessage.h ModelicaIO.h; do
-            curl -fsSL "$BASE/$hdr" -o "$hdr"
+          for f in ModelicaStrings.h ModelicaStrings.c \
+                   ModelicaUtilities.h \
+                   ModelicaError.h ModelicaFormatMessage.h; do
+            curl -fsSL "$BASE/$f" -o "$f"
           done
+
           python - <<'PY'
-          import zipfile, glob
-          with zipfile.ZipFile('Standalone_House.fmu', 'a') as z:
-              existing = set(z.namelist())
-              for hdr in glob.glob('*.h'):
-                  key = f'sources/{hdr}'
+          import zipfile, glob, shutil
+
+          src = 'Standalone_House.fmu'
+          tmp = 'Standalone_House_patched.fmu'
+
+          with zipfile.ZipFile(src, 'r') as zin, \
+               zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zout:
+              existing = set(zin.namelist())
+              for name in zin.namelist():
+                  if name == 'sources/CMakeLists.txt':
+                      # Remove OM's Windows-path cmake so fmpy generates its own
+                      print(f'Removed {name}')
+                      continue
+                  zout.writestr(name, zin.read(name))
+              for f in glob.glob('*.h') + glob.glob('*.c'):
+                  key = f'sources/{f}'
                   if key not in existing:
-                      z.write(hdr, key)
+                      zout.write(f, key)
                       print(f'Added {key}')
+
+          shutil.move(tmp, src)
           PY
 
       - name: Compile linux64 binary
@@ -48,7 +65,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Standalone_House.fmu
-          git diff --staged --quiet && echo "Binary already present, nothing to commit." || (
+          git diff --staged --quiet && echo "Nothing to commit." || (
             git commit -m "ci: add linux64 binary to FMU [skip ci]"
             git push
           )
