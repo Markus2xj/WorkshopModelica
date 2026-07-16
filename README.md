@@ -17,10 +17,9 @@ Open `Workshop_Modelica.mo`, edit, then re-export `Standalone_House_cosim`
 following the two rules above and drop the new `.fmu` into this repo.
 
 
-
 ## Workshop Part 2
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/<your-username>/<your-repo>/HEAD?labpath=workshop.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Markus2xj/WorkshopModelica/HEAD?labpath=workshop.ipynb)
 
 Click the badge, wait for the environment to build, and `workshop.ipynb` opens.
 Edit the `forcing_signal` function, run the cells, and see the result. 
