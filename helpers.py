@@ -1,9 +1,26 @@
 from fmpy import read_model_description, extract, dump
 from fmpy.fmi2 import FMU2Slave
 import os
+import platform
 import shutil
 import math
 import uuid
+import zipfile
+
+
+def _ensure_binary(filepath):
+    """Compile FMU C sources for the current platform if no binary is present."""
+    sys_map = {"Linux": "linux64", "Windows": "win64", "Darwin": "darwin64"}
+    plat = sys_map.get(platform.system())
+    if plat is None:
+        return
+    with zipfile.ZipFile(filepath) as z:
+        if any(n.startswith(f"binaries/{plat}/") for n in z.namelist()):
+            return
+    print(f"No {plat} binary found in FMU — compiling from source (one-time, ~30 s)...")
+    from fmpy.util import compile_platform_binary
+    compile_platform_binary(filepath)
+    print("Compilation done.")
 
 def build_variable_maps(model_description):
     """
@@ -147,6 +164,7 @@ def load_fmu(
     fmu = None
 
     try:
+        _ensure_binary(filepath)
         unzipdir = extract(filepath)
 
         fmu = FMU2Slave(
