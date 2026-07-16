@@ -1,0 +1,54 @@
+name: compile-fmu
+
+on:
+  push:
+    paths: ['Standalone_House.fmu']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools and fmpy
+        run: |
+          sudo apt-get install -y cmake build-essential
+          pip install fmpy
+
+      - name: Patch missing ModelicaExternalC headers into FMU
+        run: |
+          BASE="https://raw.githubusercontent.com/modelica/ModelicaExternalC/master/C-Sources"
+          for hdr in ModelicaStrings.h ModelicaUtilities.h ModelicaError.h ModelicaFormatMessage.h ModelicaIO.h; do
+            curl -fsSL "$BASE/$hdr" -o "$hdr"
+          done
+          python - <<'PY'
+          import zipfile, glob
+          with zipfile.ZipFile('Standalone_House.fmu', 'a') as z:
+              existing = set(z.namelist())
+              for hdr in glob.glob('*.h'):
+                  key = f'sources/{hdr}'
+                  if key not in existing:
+                      z.write(hdr, key)
+                      print(f'Added {key}')
+          PY
+
+      - name: Compile linux64 binary
+        run: python -m fmpy compile Standalone_House.fmu
+
+      - name: Commit updated FMU
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Standalone_House.fmu
+          git diff --staged --quiet && echo "Binary already present, nothing to commit." || (
+            git commit -m "ci: add linux64 binary to FMU [skip ci]"
+            git push
+          )
