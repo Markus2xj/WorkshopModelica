@@ -48,10 +48,8 @@ jobs:
           EOF
           omc export.mos
 
-      - name: Verify and rename FMU
-        run: |
-          ls -lh *.fmu
-          mv Workshop_Modelica.Wrapper.Standalone_House.fmu Standalone_House.fmu
+      - name: Verify FMU
+        run: ls -lh Standalone_House.fmu
 
       - name: Commit FMU
         run: |
