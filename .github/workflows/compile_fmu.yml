@@ -36,10 +36,10 @@ jobs:
       - name: Export linux64 FMU
         run: |
           rm -f Standalone_House.fmu
-          cat > export.mos << 'EOF'
-          cd("$ENV{GITHUB_WORKSPACE}");
+          cat > export.mos << EOF
+          cd("$GITHUB_WORKSPACE");
           loadModel(Modelica);
-          loadFile("Workshop_Modelica.mo");
+          loadFile("$GITHUB_WORKSPACE/Workshop_Modelica.mo");
           buildModelFMU(
             Workshop_Modelica.Wrapper.Standalone_House,
             version="2.0",
