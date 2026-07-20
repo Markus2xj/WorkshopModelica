@@ -26,6 +26,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openmodelica
 
+      - name: Install Modelica Standard Library 4.0.0
+        run: |
+          chmod u+w ~/.openmodelica/libraries/index.json 2>/dev/null || true
+          omc -e 'installPackage(Modelica, "4.0.0", exactMatch=false); getErrorString();'
+
       - name: Install Modelica Buildings Library 11.0.0
         run: |
           mkdir -p ~/.openmodelica/libraries
