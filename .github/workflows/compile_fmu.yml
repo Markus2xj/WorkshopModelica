@@ -40,16 +40,18 @@ jobs:
           cd("$GITHUB_WORKSPACE");
           loadModel(Modelica);
           loadFile("$GITHUB_WORKSPACE/Workshop_Modelica.mo");
-          buildModelFMU(
+          fmuPath := buildModelFMU(
             Workshop_Modelica.Wrapper.Standalone_House,
             version="2.0",
             fmuType="cs",
             platforms={"dynamic"}
           );
-          getErrorString();
+          print("FMU written to: " + fmuPath + "\n");
+          print("Errors: " + getErrorString() + "\n");
           EOF
-          omc export.mos
-          find . -name "*.fmu" -ls
+          omc export.mos 2>&1
+          echo "=== searching for FMU ==="
+          find / -name "*.fmu" 2>/dev/null || true
 
       - name: Verify FMU
         run: ls -lh Standalone_House.fmu
