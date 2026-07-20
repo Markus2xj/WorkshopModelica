@@ -2,70 +2,63 @@ name: compile-fmu
 
 on:
   push:
-    paths: ['Standalone_House.fmu']
+    paths:
+      - 'Workshop_Modelica.mo'
+      - 'ITA_Napoli-Capodichino.162890_IGDG.mos'
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install build tools and fmpy
+      - name: Install OpenModelica
         run: |
-          sudo apt-get install -y cmake build-essential
-          pip install fmpy
+          curl -fsSL http://build.openmodelica.org/apt/openmodelica.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/openmodelica-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/openmodelica-keyring.gpg] \
+            https://build.openmodelica.org/apt jammy stable" \
+            | sudo tee /etc/apt/sources.list.d/openmodelica.list
+          sudo apt-get update
+          sudo apt-get install -y openmodelica
 
-      - name: Patch FMU
+      - name: Install Modelica Buildings Library 11.0.0
         run: |
-          # Fetch ModelicaExternalC headers and implementations
-          BASE="https://raw.githubusercontent.com/modelica/ModelicaExternalC/master/C-Sources"
-          for f in ModelicaStrings.h ModelicaStrings.c \
-                   ModelicaUtilities.h \
-                   ModelicaError.h ModelicaFormatMessage.h; do
-            curl -fsSL "$BASE/$f" -o "$f"
-          done
+          mkdir -p ~/.openmodelica/libraries
+          curl -fsSL https://github.com/lbl-srg/modelica-buildings/releases/download/v11.0.0/Buildings-v11.0.0.zip \
+            -o /tmp/Buildings.zip
+          unzip -q /tmp/Buildings.zip -d ~/.openmodelica/libraries/
 
-          python - <<'PY'
-          import zipfile, glob, shutil
+      - name: Export linux64 FMU
+        run: |
+          cat > export.mos << 'EOF'
+          loadModel(Modelica);
+          loadFile("Workshop_Modelica.mo");
+          buildModelFMU(
+            Workshop_Modelica.Wrapper.Standalone_House,
+            version="2.0",
+            fmuType="cs",
+            platforms={"dynamic"}
+          );
+          getErrorString();
+          EOF
+          omc export.mos
 
-          src = 'Standalone_House.fmu'
-          tmp = 'Standalone_House_patched.fmu'
+      - name: Verify and rename FMU
+        run: |
+          ls -lh *.fmu
+          mv Workshop_Modelica.Wrapper.Standalone_House.fmu Standalone_House.fmu
 
-          with zipfile.ZipFile(src, 'r') as zin, \
-               zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zout:
-              existing = set(zin.namelist())
-              for name in zin.namelist():
-                  if name == 'sources/CMakeLists.txt':
-                      # Remove OM's Windows-path cmake so fmpy generates its own
-                      print(f'Removed {name}')
-                      continue
-                  zout.writestr(name, zin.read(name))
-              for f in glob.glob('*.h') + glob.glob('*.c'):
-                  key = f'sources/{f}'
-                  if key not in existing:
-                      zout.write(f, key)
-                      print(f'Added {key}')
-
-          shutil.move(tmp, src)
-          PY
-
-      - name: Compile linux64 binary
-        run: python -m fmpy compile Standalone_House.fmu
-
-      - name: Commit updated FMU
+      - name: Commit FMU
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Standalone_House.fmu
-          git diff --staged --quiet && echo "Nothing to commit." || (
-            git commit -m "ci: add linux64 binary to FMU [skip ci]"
+          git diff --staged --quiet && echo "No changes." || (
+            git commit -m "ci: build linux64 FMU with OpenModelica on Ubuntu [skip ci]"
             git push
           )
