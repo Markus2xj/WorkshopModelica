@@ -36,10 +36,24 @@ jobs:
       - name: Export linux64 FMU
         run: |
           rm -f Standalone_House.fmu
+          echo "=== Libraries directory ==="
+          ls ~/.openmodelica/libraries/ || true
+
           cat > export.mos << EOF
           cd("$GITHUB_WORKSPACE");
-          loadModel(Modelica);
-          loadFile("$GITHUB_WORKSPACE/Workshop_Modelica.mo");
+
+          r := loadModel(Modelica);
+          print("loadModel(Modelica): " + String(r) + "\n");
+          print("Errors: " + getErrorString() + "\n");
+
+          r := loadModel(Buildings);
+          print("loadModel(Buildings): " + String(r) + "\n");
+          print("Errors: " + getErrorString() + "\n");
+
+          r := loadFile("$GITHUB_WORKSPACE/Workshop_Modelica.mo");
+          print("loadFile: " + String(r) + "\n");
+          print("Errors: " + getErrorString() + "\n");
+
           fmuPath := buildModelFMU(
             Workshop_Modelica.Wrapper.Standalone_House,
             version="2.0",
@@ -50,8 +64,6 @@ jobs:
           print("Errors: " + getErrorString() + "\n");
           EOF
           omc export.mos 2>&1
-          echo "=== searching for FMU ==="
-          find / -name "*.fmu" 2>/dev/null || true
 
       - name: Verify FMU
         run: ls -lh Standalone_House.fmu
