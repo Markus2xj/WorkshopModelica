@@ -42,10 +42,6 @@ jobs:
           cat > export.mos << EOF
           cd("$GITHUB_WORKSPACE");
 
-          r := loadModel(Modelica);
-          print("loadModel(Modelica): " + String(r) + "\n");
-          print("Errors: " + getErrorString() + "\n");
-
           r := loadModel(Buildings);
           print("loadModel(Buildings): " + String(r) + "\n");
           print("Errors: " + getErrorString() + "\n");
