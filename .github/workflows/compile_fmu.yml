@@ -35,7 +35,9 @@ jobs:
 
       - name: Export linux64 FMU
         run: |
+          rm -f Standalone_House.fmu
           cat > export.mos << 'EOF'
+          cd("$ENV{GITHUB_WORKSPACE}");
           loadModel(Modelica);
           loadFile("Workshop_Modelica.mo");
           buildModelFMU(
@@ -47,6 +49,7 @@ jobs:
           getErrorString();
           EOF
           omc export.mos
+          find . -name "*.fmu" -ls
 
       - name: Verify FMU
         run: ls -lh Standalone_House.fmu
